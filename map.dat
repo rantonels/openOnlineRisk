@@ -1,21 +1,79 @@
 [Alaska]
+nb=Kamchatka,Northwest Territories,Alberta
+
 [Northwest Territories]
+nb=Alaska,Alberta,Ontario,Greenland
+
 [Greenland]
+nb=Northwest Territories,Alberta,Ontario,Quebec
+
 [Alberta]
+nb=Alaska,Northwest Territories,Ontario,Western US
+
 [Ontario]
+nb=Alberta,Northwest Territories,Greenland,Quebec,Eastern US
+
 [Quebec]
+nb=Greenland,Ontario,Eastern US
+
 [Western US]
+nb=Alberta,Ontario,Eastern US,Central America
+
 [Eastern US]
+nb=Central America,Western US, Ontario,Quebec
+
+
 [Central America]
+nb=Western US,Eastern US,Venezuela
+
 [Venezuela]
+nb=Central America,Brazil,Peru
+
 [Brazil]
+nb=Venezuela,Peru,Argentina,North Africa
+
 [Peru]
+nb=Venezuela,Brazil,Argentina
+
 [Argentina]
+nb=Peru,Brazil
+
 [Iceland]
+nb=Greenland,Great Britain,Scandinavia
+
 [Great Britain]
+nb=Iceland,Scandinavia,Northern Europe,Western Europe
+
 [Scandinavia]
+nb=Ucraine,Northern Europe,Great Britain,Iceland
+
 [Northern Europe]
+nb=Great Britain,Scandinavia,Ucraine,Southern Europe,Western Europe
+
 [Ucraine]
+nb=Southern Europe,Northern Europe,Scandinavia,Urals,Afghanistan,Middle East
+
 [Western Europe]
 [Southern Europe]
-
+[Kamchatka]
+[Jacuzia]
+[Japan]
+[Cita]
+[Mongolia]
+[China]
+[Urals]
+[Siberia]
+[Afghanistan]
+[India]
+[Middle East]
+[Siam]
+[North Africa]
+[Egypt]
+[East Africa]
+[Congo]
+[South Africa]
+[Madagascar]
+[Indonesia]
+[New Guinea]
+[West Australia]
+[East Australia]
