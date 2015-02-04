@@ -7,7 +7,32 @@ import time
 
 import re
 
-import cPickle as pickle
+import argparse
+
+aparser = argparse.ArgumentParser(description='Main engine daemon for openOnlineRisk.')
+apickle = aparser.add_mutually_exclusive_group()
+
+apickle.add_argument('--cpickle',
+		action='store_true', default=True, 
+		help='use cPickle as substitute for pickle for loading/unloading objects (faster, default)')
+
+apickle.add_argument('--pickle',
+		action='store_true', default=False,
+		help='force use of standard pickle module (slow), use if you are having problems with file loading/unloading.')
+
+aparser.add_argument('--debug',
+		action='store_true', default=False,
+		help='activates verbose logging (>=DEBUG) on console output (default is >=INFO).')
+
+
+
+args = aparser.parse_args()
+
+if (args.cpickle and (not args.pickle)):
+	import cPickle as pickle
+else:
+	print "using std pickle"
+	import pickle
 
 #change directory to script directory
 os.chdir(os.path.dirname(sys.argv[0]))
@@ -27,7 +52,10 @@ logfh.setLevel(logging.DEBUG)
 
 #stream handler
 logch = logging.StreamHandler()
-logch.setLevel(logging.DEBUG)
+if args.debug:
+	logch.setLevel(logging.DEBUG)
+else:
+	logch.setLevel(logging.INFO)
 
 #adding handlers -> main logger
 logger.addHandler(logfh)
@@ -157,6 +185,10 @@ class Game:
 		self.log = []
 		self.winner = None
 
+
+		self.minplayers = 0
+		self.maxplayers = 8
+
 		if (gid==None):
 			self.gid = random.getrandbits(32)
 		else:
@@ -192,7 +224,7 @@ games_list = []
 
 #MESSAGE PARSING
 
-mesparser = re.compile("(\w+):(\w+)@(\d+) (.*)")
+mesparser = re.compile("(\w+):(\w+)@([A-Fa-f0-9]+) (.*)")
 
 def parse_message(message):
 	pars = mesparser.match(message)
@@ -202,10 +234,15 @@ def parse_message(message):
 	
 	m_uname 	= pars.group(1)
 	m_passhash	= pars.group(2)
-	m_game		= pars.group(3)
+	try:
+		m_game		= int(pars.group(3),16)
+	except ValueError:
+		logger.warning("Error converting hex literal %s to int for gid (game ID). Ignoring request."%pars.group(3))
+		return
+
 	m_commands	= map(str.strip,pars.group(4).split(" "))
 
-	logger.debug("Player %s @ game %s requests: "%(m_uname,m_game)+ ",".join(m_commands))
+	logger.debug("Player %s @ game %08x requests: "%(m_uname,m_game)+ ",".join(m_commands))
 
 	if ( not (m_uname in player_db)):
 		logger.warning("Player %s does not exist. Ignoring request."%m_uname)
@@ -213,8 +250,66 @@ def parse_message(message):
 	if (player_db[m_uname]["hpass"] != m_passhash):
 		logger.warning("Password for player is incorrect. Ignoring request.")
 		return
-	
 
+	if(len(m_commands)==0):
+		logger.warning("Error: no command specified. Ignoring request.")
+		return
+
+	#commands with game number = 0 are 'global' commands issued outside of a specific game
+	#for example, querying for creation of a new game
+	if (m_game == 0):	
+		if (m_commands[0] == "CREATE_GAME"):
+			#syntax: CREATE_GAME minplayers maxplayers
+			if(len(m_commands) < 3):
+				logger.warning("Insufficent args for CREATE_GAME. Ignoring request.")
+				return
+			try:
+				pbounds = (int(m_commands[1]),int(m_commands[2]))
+			except ValueError:
+				logger.warning("Error converting literal to int in args. Ignoring request.")
+				return
+		
+			if(len(games_list) >= MAX_GAMES):
+				logger.warning("Cannot create more games: maximum reached.")
+				logger.info("(change constant MAX_GAMES (now =%d) if needed"%MAX_GAMES)
+				return
+
+			ngame = Game()	
+			(ngame.minplayers,ngame.maxplayers) = pbounds
+			ngame.players.append(m_uname)
+			games_list.append(ngame)
+		else:
+			logger.warning("Command not recognized, ignoring request. (%s)"%m_commands[0])
+			return
+			
+	
+	#commands with a specific game number, relative to an active game,
+	#are clearly specific to that game
+	else:
+		#search for gid in active games
+		gindex = -1
+		for i in range(len(games_list)):
+			if(games_list[i].gid ==m_game):
+				gindex = i
+
+		if (gindex == -1):
+			logger.warning("Game %08x does not exist. Ignoring request."%m_game)
+			return
+
+		if(m_commands[0] == "JOIN"):
+			logger.info("here we should let him join the game")
+	
+		
+		#unless the command is to try joining that game,
+		#players must be members of the game.
+
+		else:
+			if (m_uname in games_list[gindex].players):
+				logger.info("here we should parse game-specific commands")
+				return
+			else:
+				logger.warning("Player is not in this game. Ignoring request.")
+				return
 
 
 
