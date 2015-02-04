@@ -5,39 +5,59 @@ import random
 import os,sys
 import time
 
+import re
+
+import cPickle as pickle
+
 #change directory to script directory
 os.chdir(os.path.dirname(sys.argv[0]))
 
-#logging configuration
+#LOGGING CONFIGURATION
 LOG_FNAME = 'engine.log'
-logFormat='[%(asctime)s] %(levelname)s:\t%(message)s'
-logFormatSh='%(levelname)s:\t%(message)s'
+logFormat='[%(asctime)s] %(levelname)s:\t\t%(message)s'
+logFormatSh='%(levelname)s\t%(message)s'
 
+#main logger
 logger = logging.getLogger('oorengine')
 logger.setLevel(logging.DEBUG)
 
+#logfile handler
 logfh = logging.FileHandler(LOG_FNAME)
 logfh.setLevel(logging.DEBUG)
 
+#stream handler
 logch = logging.StreamHandler()
 logch.setLevel(logging.DEBUG)
 
+#adding handlers -> main logger
+logger.addHandler(logfh)
+logger.addHandler(logch)
+
+#format setup
 logfmt 		= logging.Formatter(logFormat)
 logfmtsh 	= logging.Formatter(logFormatSh)
-
 
 logfh.setFormatter(logfmt)
 logch.setFormatter(logfmtsh)
 
-logger.addHandler(logfh)
-logger.addHandler(logch)
+
+#LOADING PLAYER DB
+logger.debug("loading player database...")
+try:
+	player_db = pickle.load(open('../database.dat','r'))
+except IOError:
+	logger.error("unable to open player database \"database.dat\".")
+	exit()
+
 
 
 #CONSTANTS
 GAMES_DIR 	= '../games/'	#folder to contain game data
 DELAY 		= 0.050		#msecs between pipe reads
 
-#utilities
+MAX_GAMES	= 8		#maximum number of allowed games
+
+#UTILITIES
 
 def ensure_dir(f):
     d = f
@@ -51,18 +71,68 @@ def ensure_dir(f):
 try:
 	f = open('../animals.txt','r')
 except IOError:
-	logging.error('no animals.txt found. This is very, very serious.')
+	logger.error('no animals.txt found. This is very, very serious.')
 	exit()
 ANAMES = [l.strip() for l in f.readlines()]
 f.close()
 
-#game stages
+
+
+#LOADING MAP DATA
+
+logger.info("loading map data...")
+
+import ConfigParser
+Config = ConfigParser.ConfigParser()
+
+try:
+	Config.read('../map.dat')
+except IOError:
+	logger.error('no map.dat found. How are we even supposed to play?')
+	exit()
+
+#load states list
+map_states = Config.sections()
+
+#check for duplicates in states
+if (len(map_states)!=len(set(map_states))): #little trick from http://stackoverflow.com/a/1541827
+	logger.error("duplicate states in map.dat.")
+	exit()
+
+#load connections
+map_connections = {}
+
+for s in map_states:
+	if("nb" in Config.options(s)):
+		raws = Config.get(s,"nb")
+		conns = map(str.strip,raws.split(','))
+
+		map_connections[s] = conns	
+
+	else:
+		logger.error('no "nb" option for state %s.'%s)
+		exit()
+
+#check for nonexisting states in connection
+
+for s in map_states:
+	for ss in map_connections[s]:
+		if (not (ss in map_states)):
+			logger.error('state "%s", declared as connected to %s, is not in main states list'%(ss,s))
+			exit()
+		if (not (s in map_connections[ss])):
+			logger.error('conflicting (one-way) connection between states %s and %s'%(s,ss))
+			exit()
+
+
+#GAMES STAGES CONSTANTS
+
 LOBBY 		= 0	#collecting players, modifying options
 OPENING 	= 1	#game has started, positioning armies
 PLAYING		= 2	#game is being played, it's someone's turn
 FINISHED	= 3	#game is over, winner was determined
 
-#preparing pipe
+#PREPARING PIPE
 
 logger.debug("preparing pipe...")
 
@@ -76,7 +146,7 @@ if not os.path.exists(FIFO_PATH):
 	os.mkfifo(FIFO_PATH)
 	
 
-
+#GAME CLASS
 
 
 class Game:
@@ -103,16 +173,52 @@ class Game:
 	def start_game(self):
 		if (self.stage != LOBBY):
 			logger.error("trying to start an already started game. No action will be performed.")
+		elif (len(self.players)<2):
+			logger.error("trying to start a game with less than two people. No action will be performed.")
 		else:
 			#start game
-			pass	
+			self.stage = OPENING
+
 
 	def adjudicate(self,winner):
 		if not (winner in self.players):
 			logger.error("trying to adjudicate match to player not playing in this game! No action will be performed")
 		else:
 			self.winner = winner
-		
+	
+#setup gamelist	
+games_list = []
+
+
+#MESSAGE PARSING
+
+mesparser = re.compile("(\w+):(\w+)@(\d+) (.*)")
+
+def parse_message(message):
+	pars = mesparser.match(message)
+	if (pars == None):
+		logger.warning("message does not match regular expression. Ignored.")	
+		return
+	
+	m_uname 	= pars.group(1)
+	m_passhash	= pars.group(2)
+	m_game		= pars.group(3)
+	m_commands	= map(str.strip,pars.group(4).split(" "))
+
+	logger.debug("Player %s @ game %s requests: "%(m_uname,m_game)+ ",".join(m_commands))
+
+	if ( not (m_uname in player_db)):
+		logger.warning("Player %s does not exist. Ignoring request."%m_uname)
+		return
+	if (player_db[m_uname]["hpass"] != m_passhash):
+		logger.warning("Password for player is incorrect. Ignoring request.")
+		return
+	
+
+
+
+
+#MAIN LOOP
 
 logger.info("starting oor engine main loop...")
 
@@ -138,6 +244,7 @@ while True:
 
 		for line in nlines:
 			logger.info("MESSAGE RECEIVED: "+line)
+			parse_message(line)
 	except KeyboardInterrupt:
 		logger.info("got KeyboardInterrupt, logging off...")
 		#destroy pipe

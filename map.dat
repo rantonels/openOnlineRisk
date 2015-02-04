@@ -5,13 +5,13 @@ nb=Kamchatka,Northwest Territories,Alberta
 nb=Alaska,Alberta,Ontario,Greenland
 
 [Greenland]
-nb=Northwest Territories,Alberta,Ontario,Quebec
+nb=Northwest Territories,Ontario,Quebec,Iceland
 
 [Alberta]
 nb=Alaska,Northwest Territories,Ontario,Western US
 
 [Ontario]
-nb=Alberta,Northwest Territories,Greenland,Quebec,Eastern US
+nb=Alberta,Northwest Territories,Greenland,Quebec,Eastern US,Western US
 
 [Quebec]
 nb=Greenland,Ontario,Eastern US
@@ -54,26 +54,73 @@ nb=Great Britain,Scandinavia,Ucraine,Southern Europe,Western Europe
 nb=Southern Europe,Northern Europe,Scandinavia,Urals,Afghanistan,Middle East
 
 [Western Europe]
+nb=Great Britain,Northern Europe,Southern Europe,North Africa
+
 [Southern Europe]
+nb=Northern Europe,Ucraine,Middle East,Egypt,North Africa,Western Europe
+
 [Kamchatka]
+nb=Jacuzia,Cita,Mongolia,Japan,Alaska
+
 [Jacuzia]
+nb=Siberia,Cita,Kamchatka
+
 [Japan]
+nb=Kamchatka,Mongolia
+
 [Cita]
+nb=Jacuzia,Siberia,Mongolia,Kamchatka
+
 [Mongolia]
+nb=Kamchatka,Cita,Siberia,China,Japan
+
 [China]
+nb=Mongolia,Siberia,Urals,Afghanistan,Middle East,India,Siam
+
 [Urals]
+nb=Siberia,Ucraine,Afghanistan,China
+
 [Siberia]
+nb=Urals,China,Mongolia,Cita,Jacuzia
+
 [Afghanistan]
+nb=Urals,Ucraine,Middle East,China
+
 [India]
+nb=China,Middle East,Siam
+
 [Middle East]
+nb=Ucraine,Southern Europe,Egypt,India,China,Afghanistan
+
 [Siam]
+nb=China,India,Indonesia
+
 [North Africa]
+nb=Western Europe,Congo,East Africa,Egypt,Southern Europe,Brazil
+
 [Egypt]
+nb=Southern Europe,North Africa,East Africa,Middle East
+
 [East Africa]
+nb=Egypt,North Africa,Congo,South Africa,Madagascar
+
 [Congo]
+nb=North Africa,South Africa,East Africa
+
 [South Africa]
+nb=Congo,Madagascar,East Africa
+
 [Madagascar]
+nb=East Africa,South Africa
+
 [Indonesia]
+nb=Siam,West Australia,New Guinea
+
 [New Guinea]
+nb=Indonesia,West Australia,East Australia
+
 [West Australia]
+nb=Indonesia,New Guinea,East Australia
+
 [East Australia]
+nb=West Australia,New Guinea
